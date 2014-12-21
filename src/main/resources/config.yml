@@ -34,3 +34,6 @@ cleanup:
 backups:
   # If you don't want any backups created change this to false.
   enabled: true
+
+conversion:
+  do-uuid-conversion: false

@@ -16,8 +16,12 @@
  */
 package com.drtshock.playervaults.util;
 
+import com.drtshock.playervaults.PlayerVaults;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.command.CommandSender;
+
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * An enum for requesting strings from the language file.
@@ -49,54 +53,87 @@ public enum Lang {
     CONVERT_PLUGIN_NOT_FOUND("plugin-not-found", "&cNo converter found for that plugin"),
     CONVERT_COMPLETE("conversion-complete", "&aConverted %converted players to PlayerVaults"),
     CONVERT_BACKGROUND("conversion-background", "&fConversion has been forked to the background. See console for updates."),
-    LOCKED("vaults-locked", "&cVaults are currently locked while conversion occurs. Please try again in a moment!");
+    LOCKED("vaults-locked", "&cVaults are currently locked while conversion occurs. Please try again in a moment!"),
 
-    private String path;
-    private String def;
-    private static YamlConfiguration LANG;
+    ALREADY_VIEWING("already-viewing", "&cYou are already viewing a vault. If this is not the case, please re-login and try again."),
 
-    /**
-     * Lang enum constructor.
-     *
-     * @param path The string path.
-     * @param start The default string.
-     */
-    Lang(String path, String start) {
-        this.path = path;
-        this.def = start;
+    USAGE_PV_NUMBER("usage.pv.number", "&f/%alias <number>"),
+    USAGE_PV_OTHER("usage.pv.other", "&f/%alias <player> <number>"),
+    USAGE_PVDEL_NUMBER("usage.pvdel.number", "&f/%alias <number>"),
+    USAGE_PVDEL_OTHER("usage.pvdel.other", "&f/%alias <player> <number>"),
+    USAGE_CONVERT("usage.convert", "&f/%alias <all | plugin name>"),
+    USAGE_SIGN("usage.sign", "&f/%alias <owner> <#>"),
+
+    UPDATE_NOTIFY("update.notify", "&aVersion %version of PlayerVaults is available for download");
+
+    private final String key;
+    private final String fallback;
+
+    private Lang(String key, String fallback) {
+        this.key = key;
+        this.fallback = fallback;
     }
 
     /**
-     * Set the {@code YamlConfiguration} to use.
+     * Sends a message.
      *
-     * @param config The config to set.
+     * @param sender the target
+     * @param args the args used to format the message
      */
-    public static void setFile(YamlConfiguration config) {
-        LANG = config;
+    public void send(CommandSender sender, Object... args) {
+        this.send(sender, true, args);
+    }
+
+    /**
+     * Sends a message, prefixed with {@link #TITLE}.
+     * @param sender the target
+     * @param withTitle if the message should be prefixed with {@link #TITLE}
+     * @param args the args used to format the message
+     */
+    public void send(CommandSender sender, boolean withTitle, Object... args) {
+        sender.sendMessage(this.format(withTitle, args));
+    }
+
+    public String format(boolean withTitle, Object... args) {
+        String message = this.toString();
+        if (withTitle) {
+            message = TITLE.toString() + " " + message;
+        }
+
+        Iterator<Object> iterator = Arrays.asList(args).iterator();
+        while (iterator.hasNext()) {
+            String key = (String) iterator.next();
+            String value = String.valueOf(iterator.next());
+            message = message.replace(key, value);
+        }
+
+        return ChatColor.translateAlternateColorCodes('&', message);
+    }
+
+    public String format(Object... args) {
+        return this.format(false, args);
     }
 
     @Override
     public String toString() {
-        if (this == TITLE)
-            return ChatColor.translateAlternateColorCodes('&', LANG.getString(this.path, def)) + " ";
-        return ChatColor.translateAlternateColorCodes('&', LANG.getString(this.path, def));
+        return PlayerVaults.get().getLanguage().getString(this.key, this.fallback);
     }
 
     /**
-     * Get the default value of the path.
+     * Get the default value of the key.
      *
-     * @return The default value of the path.
+     * @return The default value of the key.
      */
-    public String getDefault() {
-        return this.def;
+    public String getFallback() {
+        return this.fallback;
     }
 
     /**
-     * Get the path to the string.
+     * Get the key to the string.
      *
-     * @return The path to the string.
+     * @return The key to the string.
      */
-    public String getPath() {
-        return this.path;
+    public String getKey() {
+        return this.key;
     }
 }

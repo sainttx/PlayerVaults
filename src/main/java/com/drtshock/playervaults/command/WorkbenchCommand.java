@@ -1,4 +1,4 @@
-package com.drtshock.playervaults.commands;
+package com.drtshock.playervaults.command;
 
 import com.drtshock.playervaults.util.Lang;
 import org.bukkit.command.Command;
@@ -7,17 +7,18 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class WorkbenchCommand implements CommandExecutor {
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender.hasPermission("playervaults.workbench")) {
             if (sender instanceof Player) {
                 ((Player) sender).openWorkbench(null, true);
-                sender.sendMessage(Lang.TITLE.toString() + Lang.OPEN_WORKBENCH);
+                Lang.OPEN_WORKBENCH.send(sender);
             } else {
-                sender.sendMessage(Lang.TITLE.toString() + Lang.PLAYER_ONLY);
+                Lang.PLAYER_ONLY.send(sender);
             }
         } else {
-            sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
+            Lang.NO_PERMS.send(sender);
         }
 
         return true;

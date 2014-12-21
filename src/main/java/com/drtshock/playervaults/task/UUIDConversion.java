@@ -1,6 +1,7 @@
-package com.drtshock.playervaults.tasks;
+package com.drtshock.playervaults.task;
 
 import com.drtshock.playervaults.PlayerVaults;
+import com.drtshock.playervaults.VaultManager;
 import com.google.common.io.Files;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -16,17 +17,16 @@ import java.util.logging.Logger;
 public final class UUIDConversion extends BukkitRunnable {
     @Override
     public void run() {
-        Logger logger = PlayerVaults.getInstance().getLogger();
+        PlayerVaults plugin = PlayerVaults.get();
+        Logger logger = plugin.getLogger();
+        VaultManager manager = plugin.getManager();
 
-        File newDir = PlayerVaults.getInstance().getVaultData();
-        if (newDir.exists()) {
-            logger.info("** Vaults have already been converted to UUIDs. If this is incorrect, shutdown your server and rename the " + newDir.toString() + " directory.");
+        if (!plugin.getConfig().getBoolean("conversion.do-uuid-conversion", false) && manager.getStorageDir().exists()) {
+            logger.info("** Vaults have already been converted to UUIDs. See config.yml for more information.");
             return;
         }
 
-        newDir.mkdirs();
-
-        File oldVaults = new File(PlayerVaults.getInstance().getDataFolder() + File.separator + "vaults");
+        File oldVaults = new File(plugin.getDataFolder() + File.separator + "vaults");
         if (oldVaults.exists()) {
             logger.info("********** Starting conversion to UUIDs **********");
             logger.info("This might take awhile.");
@@ -40,7 +40,7 @@ public final class UUIDConversion extends BukkitRunnable {
                     break;
                 }
 
-                File newFile = new File(PlayerVaults.getInstance().getVaultData(), player.getUniqueId().toString() + ".yml");
+                File newFile = new File(manager.getStorageDir(), player.getUniqueId().toString() + ".yml");
                 file.mkdirs();
                 try {
                     Files.copy(file, newFile);

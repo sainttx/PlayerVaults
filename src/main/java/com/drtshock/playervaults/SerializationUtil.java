@@ -1,23 +1,9 @@
-/* 
- * Copyright (C) 2013 drtshock
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-package com.drtshock.playervaults.vaultmanagement;
+package com.drtshock.playervaults;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.drtshock.playervaults.util.Lang;
+import com.drtshock.playervaults.util.VaultHolder;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.Inventory;
@@ -26,25 +12,29 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Fancy JSON serialization mostly by evilmidget38.
  *
  * @author evilmidget38, gomeow
  */
-public class Serialization {
+public class SerializationUtil {
 
     @SuppressWarnings("unchecked")
     public static Map<String, Object> toMap(JSONObject object) throws JSONException {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> result = Maps.newHashMap();
+
         Iterator<String> keys = object.keys();
         while (keys.hasNext()) {
             String key = keys.next();
-            map.put(key, fromJson(object.get(key)));
+            result.put(key, fromJson(object.get(key)));
         }
-        return map;
+
+        return result;
     }
 
     private static Object fromJson(Object json) throws JSONException {
@@ -60,17 +50,20 @@ public class Serialization {
     }
 
     public static List<Object> toList(JSONArray array) throws JSONException {
-        List<Object> list = new ArrayList<>();
+        List<Object> result = Lists.newArrayList();
+
         for (int i = 0; i < array.length(); i++) {
-            list.add(fromJson(array.get(i)));
+            result.add(fromJson(array.get(i)));
         }
-        return list;
+
+        return result;
     }
 
-    public static List<String> toString(Inventory inv) {
-        List<String> result = new ArrayList<>();
-        List<ConfigurationSerializable> items = new ArrayList<>();
-        Collections.addAll(items, inv.getContents());
+    public static List<String> toString(Inventory inventory) {
+        List<String> result = Lists.newArrayList();
+
+        List<ConfigurationSerializable> items = Lists.newArrayList();
+        Collections.addAll(items, inventory.getContents());
         for (ConfigurationSerializable cs : items) {
             if (cs == null) {
                 result.add("null");
@@ -78,91 +71,104 @@ public class Serialization {
                 result.add(new JSONObject(serialize(cs)).toString());
             }
         }
+
         return result;
     }
 
-    public static Inventory toInventory(List<String> stringItems, int number, int size) {
-        VaultHolder holder = new VaultHolder(number);
-        Inventory inv = Bukkit.createInventory(holder, size, ChatColor.RED + "Vault #" + number);
-        holder.setInventory(inv);
-        List<ItemStack> contents = new ArrayList<>();
-        for (String piece : stringItems) {
+    public static Inventory toInventory(int vaultId, int size, List<String> rawContents) {
+        Inventory inventory = VaultHolder.wrapInventory(vaultId, Lang.VAULT_TITLE.format("%number", vaultId), size);
+
+        List<ItemStack> result = Lists.newArrayList();
+        for (String piece : rawContents) {
             if (piece.equalsIgnoreCase("null")) {
-                contents.add(null);
+                result.add(null);
             } else {
                 try {
-                    ItemStack item = (ItemStack) deserialize(toMap(new JSONObject(piece)));
-                    contents.add(item);
+                    result.add((ItemStack) deserialize(toMap(new JSONObject(piece))));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
         }
-        ItemStack[] items = new ItemStack[contents.size()];
-        for (int x = 0; x < contents.size(); x++) {
-            items[x] = contents.get(x);
+
+        ItemStack[] inventoryContents = new ItemStack[result.size()];
+        for (int x = 0; x < result.size(); x++) {
+            inventoryContents[x] = result.get(x);
         }
-        inv.setContents(items);
-        return inv;
+
+        inventory.setContents(inventoryContents);
+
+        return inventory;
     }
 
-    public static Map<String, Object> serialize(ConfigurationSerializable cs) {
-        Map<String, Object> returnVal = handleSerialization(cs.serialize());
-        returnVal.put(ConfigurationSerialization.SERIALIZED_TYPE_KEY, ConfigurationSerialization.getAlias(cs.getClass()));
+    public static Map<String, Object> serialize(ConfigurationSerializable config) {
+        Map<String, Object> returnVal = handleSerialization(config.serialize());
+        returnVal.put(ConfigurationSerialization.SERIALIZED_TYPE_KEY, ConfigurationSerialization.getAlias(config.getClass()));
         return returnVal;
     }
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> handleSerialization(Map<String, Object> map) {
         Map<String, Object> serialized = recreateMap(map);
-        for (Entry<String, Object> entry : serialized.entrySet()) {
+
+        for (Map.Entry<String, Object> entry : serialized.entrySet()) {
             if (entry.getValue() instanceof ConfigurationSerializable) {
                 entry.setValue(serialize((ConfigurationSerializable) entry.getValue()));
             } else if (entry.getValue() instanceof Iterable<?>) {
-                List<Object> newList = new ArrayList<>();
+                List<Object> result = Lists.newArrayList();
+
                 for (Object object : ((Iterable) entry.getValue())) {
                     if (object instanceof ConfigurationSerializable) {
                         object = serialize((ConfigurationSerializable) object);
                     }
-                    newList.add(object);
+
+                    result.add(object);
                 }
-                entry.setValue(newList);
+
+                entry.setValue(result);
             } else if (entry.getValue() instanceof Map<?, ?>) {
-                // unchecked cast here.  If you're serializing to a non-standard Map you deserve ClassCastExceptions
+                // unchecked cast here. If you're serializing to a non-standard Map you deserve ClassCastExceptions
                 entry.setValue(handleSerialization((Map<String, Object>) entry.getValue()));
             }
         }
+
         return serialized;
     }
 
     public static Map<String, Object> recreateMap(Map<String, Object> original) {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = Maps.newHashMap();
         map.putAll(original);
+
         return map;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static ConfigurationSerializable deserialize(Map<String, Object> map) {
-        for (Entry<String, Object> entry : map.entrySet()) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() instanceof Map && ((Map) entry.getValue()).containsKey(ConfigurationSerialization.SERIALIZED_TYPE_KEY)) {
                 entry.setValue(deserialize((Map) entry.getValue()));
             } else if (entry.getValue() instanceof Iterable) {
                 entry.setValue(convertIterable((Iterable) entry.getValue()));
             }
         }
+
         return ConfigurationSerialization.deserializeObject(map);
     }
 
+    @SuppressWarnings({"unchecked"})
     private static List<?> convertIterable(Iterable<?> iterable) {
-        List<Object> newList = new ArrayList<>();
+        List<Object> result = Lists.newArrayList();
+
         for (Object object : iterable) {
             if (object instanceof Map) {
                 object = deserialize((Map<String, Object>) object);
             } else if (object instanceof List) {
                 object = convertIterable((Iterable) object);
             }
-            newList.add(object);
+
+            result.add(object);
         }
-        return newList;
+
+        return result;
     }
 }

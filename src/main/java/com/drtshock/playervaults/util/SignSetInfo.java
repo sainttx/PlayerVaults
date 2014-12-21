@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.drtshock.playervaults.commands;
+package com.drtshock.playervaults.util;
 
 /**
  * A class for setting signs. Stores information about the sign owner, number, and whether or not is opens a self vault
@@ -22,28 +22,30 @@ package com.drtshock.playervaults.commands;
  */
 public class SignSetInfo {
 
-    private String owner;
-    private int number;
-    private boolean self = false;
+    private final String owner;
+    private final int vaultId;
+    private final boolean self;
 
     /**
      * Construct a SignSetInfo object for another person.
      *
-     * @param s The vault owner.
-     * @param i The vault number.
+     * @param owner The vault owner.
+     * @param vaultId The vault number.
      */
-    public SignSetInfo(String s, int i) {
-        this.owner = s;
-        this.number = i;
+    public SignSetInfo(String owner, int vaultId) {
+        this.owner = owner;
+        this.vaultId = vaultId;
+        this.self = false;
     }
 
     /**
      * Construct a SignSetInfo object for opening to self.
      *
-     * @param i The vault number.
+     * @param vaultId The vault number.
      */
-    public SignSetInfo(int i) {
-        this.number = i;
+    public SignSetInfo(int vaultId) {
+        this.owner = null;
+        this.vaultId = vaultId;
         this.self = true;
     }
 
@@ -70,7 +72,7 @@ public class SignSetInfo {
      *
      * @return The vault number.
      */
-    public int getChest() {
-        return this.number;
+    public int getVaultId() {
+        return this.vaultId;
     }
 }

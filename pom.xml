@@ -4,7 +4,7 @@
 
     <groupId>com.drtshock</groupId>
     <artifactId>PlayerVaults</artifactId>
-    <version>3.5.1</version>
+    <version>4.0.0</version>
     <name>PlayerVaults</name>
     <url>http://dev.bukkit.org/bukkit-plugins/playervaults/</url>
 
@@ -75,13 +75,17 @@
             <id>turt2live-repo</id>
             <url>http://repo.turt2live.com</url>
         </repository>
+        <repository>
+            <id>sk89q-repo</id>
+            <url>http://maven.sk89q.com/repo/</url>
+        </repository>
     </repositories>
 
     <dependencies>
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
-            <version>1.7.9-R0.2</version>
+            <version>1.7.10-R0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.milkbowl.vault</groupId>

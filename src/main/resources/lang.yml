@@ -26,3 +26,15 @@ plugin-not-found: "&cNo converter found for that plugin"
 conversion-complete: "&aConverted %converted players to PlayerVaults"
 conversion-background: "&fConversion has been forked to the background. See console for updates."
 vaults-locked: "&cVaults are currently locked while conversion occurs. Please try again in a moment!"
+already-viewing: "&cYou are already viewing a vault. If this is not the case, please re-login and try again."
+usage:
+  pv:
+    number: "&f/%alias <number>"
+    other: "&f/%alias <player> <number>"
+  pvdel:
+    number: "&f/%alias <number>"
+    other: "&f/%alias <player> <number>"
+  convert: "&f/%alias <all | plugin name>"
+  sign: "&f/%alias <owner> <#>"
+update:
+  notify: "&aVersion %version of PlayerVaults is available for download"
