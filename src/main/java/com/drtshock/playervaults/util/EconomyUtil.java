@@ -29,7 +29,7 @@ public class EconomyUtil {
 
     public static boolean payToOpen(CommandSender sender, int vaultId) {
         Economy economy = getEconomy();
-        if (economy == null  || !(sender instanceof Player) || sender.hasPermission("playervaults.free")) {
+        if (economy == null || !(sender instanceof Player) || sender.hasPermission("playervaults.free")) {
             return true;
         }
 

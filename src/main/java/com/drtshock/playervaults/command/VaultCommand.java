@@ -47,7 +47,7 @@ public class VaultCommand implements CommandExecutor {
                 }
 
                 if (VaultUtil.canOpenVault(player, null, vaultId)) {
-                    player.openInventory(PlayerVaults.get().getManager().loadVaultFor(player.getUniqueId(), vaultId, VaultUtil.getMaxVaultSize(player), player));
+                    player.openInventory(manager.loadVaultFor(player.getUniqueId(), vaultId, VaultUtil.getMaxVaultSize(player), player));
                     manager.getActiveVaults().put(player.getName(), new VaultViewInfo(player.getName(), vaultId));
                     Lang.OPEN_VAULT.send(player, "%v", vaultId);
                 } else if (player.hasPermission("playervaults.admin")) {
@@ -86,8 +86,7 @@ public class VaultCommand implements CommandExecutor {
                 }
 
                 if (VaultUtil.canOpenVault(player, target, vaultId)) {
-                    player.openInventory(
-                        PlayerVaults.get().getManager().loadVaultFor(player.getUniqueId(), vaultId, VaultUtil.getMaxVaultSize(target), player));
+                    player.openInventory(manager.loadVaultFor(player.getUniqueId(), vaultId, VaultUtil.getMaxVaultSize(target), player));
                     manager.getActiveVaults().put(player.getName(), new VaultViewInfo(args[0], vaultId));
                     Lang.OPEN_VAULT.send(player, "%v", vaultId);
                 } else {

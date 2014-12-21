@@ -12,7 +12,7 @@ public final class VaultHolder implements InventoryHolder {
     private Inventory inventory;
     private int vaultId = 0;
 
-    public VaultHolder(int vaultId) {
+    private VaultHolder(int vaultId) {
         this.vaultId = vaultId;
     }
 

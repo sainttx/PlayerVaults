@@ -7,6 +7,7 @@ import java.io.File;
 import java.util.logging.Logger;
 
 public class Cleanup extends BukkitRunnable {
+
     private long diff;
 
     public Cleanup(int diff) {

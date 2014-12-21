@@ -102,9 +102,10 @@ public class SerializationUtil {
     }
 
     public static Map<String, Object> serialize(ConfigurationSerializable config) {
-        Map<String, Object> returnVal = handleSerialization(config.serialize());
-        returnVal.put(ConfigurationSerialization.SERIALIZED_TYPE_KEY, ConfigurationSerialization.getAlias(config.getClass()));
-        return returnVal;
+        Map<String, Object> result = handleSerialization(config.serialize());
+        result.put(ConfigurationSerialization.SERIALIZED_TYPE_KEY, ConfigurationSerialization.getAlias(config.getClass()));
+
+        return result;
     }
 
     @SuppressWarnings("unchecked")

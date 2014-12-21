@@ -15,6 +15,7 @@ import java.util.logging.Logger;
  * Class to convert vaults by name to vaults by UUID.
  */
 public final class UUIDConversion extends BukkitRunnable {
+
     @Override
     public void run() {
         PlayerVaults plugin = PlayerVaults.get();
@@ -33,7 +34,9 @@ public final class UUIDConversion extends BukkitRunnable {
             logger.info(oldVaults.toString() + " will remain as a backup.");
 
             for (File file : oldVaults.listFiles()) {
-                if (file.isDirectory()) continue; // backups folder.
+                if (file.isDirectory()) {
+                    continue; // backups folder.
+                }
                 OfflinePlayer player = Bukkit.getOfflinePlayer(file.getName().replace(".yml", ""));
                 if (player == null) {
                     logger.warning("Unable to convert file because player never joined the server: " + file.getName());

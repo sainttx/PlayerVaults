@@ -8,17 +8,33 @@ public class VaultViewInfo {
     private final String viewer;
     private final int vaultId;
 
+    /**
+     * Make a VaultViewObject
+     *
+     * @param viewer The viewer of the vault.
+     * @param vaultId The vault number.
+     */
     public VaultViewInfo(String viewer, int vaultId) {
         this.viewer = viewer;
         this.vaultId = vaultId;
     }
 
+    /**
+     * Get the viewer of the vault.
+     *
+     * @return The viewer of the vault.
+     */
     public String getViewer() {
-        return viewer;
+        return this.viewer;
     }
 
+    /**
+     * Get the vault id.
+     *
+     * @return The vault id.
+     */
     public int getVaultId() {
-        return vaultId;
+        return this.vaultId;
     }
 
     @Override

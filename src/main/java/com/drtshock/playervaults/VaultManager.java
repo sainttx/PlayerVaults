@@ -13,6 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,6 +82,18 @@ public class VaultManager {
 
     public void setLocked(boolean locked) {
         this.lock.set(locked);
+
+        if (locked) {
+            for (Player player : PlayerVaults.get().getOnlinePlayers()) {
+                if (player.getOpenInventory() != null) {
+                    InventoryView view = player.getOpenInventory();
+                    if (view.getTopInventory().getHolder() instanceof VaultHolder) {
+                        player.closeInventory();
+                        Lang.LOCKED.send(player);
+                    }
+                }
+            }
+        }
     }
 
     public Map<String, VaultViewInfo> getActiveVaults() {
@@ -113,9 +126,7 @@ public class VaultManager {
             return null;
         }
 
-        YamlConfiguration vaultFile = this.getVaultFileFor(uniqueId);
-
-        List<String> data = vaultFile.getStringList("vault" + vaultId);
+        List<String> data = this.getVaultFileFor(uniqueId).getStringList("vault" + vaultId);
         int maxVaultSize = VaultUtil.getMaxVaultSize(player);
         if (data == null) {
             return VaultHolder.wrapInventory(vaultId, Lang.VAULT_TITLE.format("%number", vaultId, "%p", player.getName()), maxVaultSize);
