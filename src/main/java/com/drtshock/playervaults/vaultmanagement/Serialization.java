@@ -21,10 +21,15 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -78,6 +83,50 @@ public class Serialization {
             }
         }
         return result;
+    }
+
+    public static Inventory toInventory(String base64, int number, int size, String title) {
+        VaultHolder holder = new VaultHolder(number);
+        Inventory inv = Bukkit.createInventory(holder, size, title);
+        holder.setInventory(inv);
+
+        ItemStack[] items = fromBase64(base64);
+        inv.setContents(items);
+        return inv;
+    }
+
+    private static ItemStack[] fromBase64(String base64) {
+        try {
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(base64));
+            BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
+            ItemStack[] stacks = new ItemStack[dataInput.readInt()];
+
+            for (int i = 0 ; i < stacks.length ; i++) {
+                stacks[i] = (ItemStack) dataInput.readObject();
+            }
+            dataInput.close();
+            return stacks;
+        } catch (Exception e) {
+            return new ItemStack[0];
+        }
+    }
+
+    public static String toBase64(ItemStack[] contents) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
+
+            dataOutput.writeInt(contents.length);
+
+            for (ItemStack stack : contents) {
+                dataOutput.writeObject(stack);
+            }
+
+            dataOutput.close();
+            return Base64Coder.encodeLines(outputStream.toByteArray());
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     public static Inventory toInventory(List<String> stringItems, int number, int size, String title) {

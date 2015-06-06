@@ -12,7 +12,6 @@ import org.bukkit.inventory.Inventory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,22 +44,11 @@ public class UUIDVaultManager {
      * @throws java.io.IOException Uh oh!
      */
     public void saveVault(Inventory inventory, UUID player, int number) throws IOException {
-        int size = inventory.getSize();
         YamlConfiguration yaml = getPlayerVaultFile(player);
-        if (size == 54) {
-            yaml.set("vault" + number, null);
-        } else {
-            for (int x = 0; x < size; x++) {
-                yaml.set("vault" + number + "." + x, null);
-            }
-        }
-        List<String> list = Serialization.toString(inventory);
-        String[] ser = list.toArray(new String[list.size()]);
-        for (int x = 0; x < ser.length; x++) {
-            if (!ser[x].equalsIgnoreCase("null")) {
-                yaml.set("vault" + number + "." + x, ser[x]);
-            }
-        }
+
+        String base64 = Serialization.toBase64(inventory.getContents());
+        yaml.set("vault" + number, base64);
+
         saveFile(player, yaml);
     }
 
@@ -86,7 +74,7 @@ public class UUIDVaultManager {
             inv = PlayerVaults.getInstance().getOpenInventories().get(info.toString());
         } else {
             YamlConfiguration playerFile = getPlayerVaultFile(player.getUniqueId());
-            if (playerFile.getConfigurationSection("vault" + number) == null) {
+            if (!playerFile.isString("vault" + number)) {
                 VaultHolder vaultHolder = new VaultHolder(number);
                 if (EconomyOperations.payToCreate(player)) {
                     inv = Bukkit.createInventory(vaultHolder, size, title);
@@ -131,7 +119,7 @@ public class UUIDVaultManager {
             inv = PlayerVaults.getInstance().getOpenInventories().get(info.toString());
         } else {
             YamlConfiguration playerFile = getPlayerVaultFile(holder);
-            if (playerFile.getConfigurationSection("vault" + number) == null) {
+            if (!playerFile.isString("vault" + number)) {
                 return null;
             } else {
                 Inventory i = getInventory(playerFile, size, number, title);
@@ -158,16 +146,8 @@ public class UUIDVaultManager {
      * @return inventory if exists, otherwise null.
      */
     private Inventory getInventory(YamlConfiguration playerFile, int size, int number, String title) {
-        List<String> data = new ArrayList<>();
-        for (int x = 0; x < size; x++) {
-            String line = playerFile.getString("vault" + number + "." + x);
-            if (line != null) {
-                data.add(line);
-            } else {
-                data.add("null");
-            }
-        }
-        return Serialization.toInventory(data, number, size, title);
+        String vault = playerFile.getString("vault" + number);
+        return Serialization.toInventory(vault, number, size, title);
     }
 
     /**
