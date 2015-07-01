@@ -44,8 +44,8 @@ import java.io.IOException;
 
 public class Listeners implements Listener {
 
-    public PlayerVaults plugin;
-    UUIDVaultManager vm = UUIDVaultManager.getInstance();
+    public final PlayerVaults plugin;
+    final UUIDVaultManager vm = UUIDVaultManager.getInstance();
 
     public Listeners(PlayerVaults playerVaults) {
         this.plugin = playerVaults;
@@ -56,17 +56,10 @@ public class Listeners implements Listener {
             Inventory inv = player.getOpenInventory().getTopInventory();
             if (inv.getViewers().size() == 1) {
                 VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
-                if (Bukkit.isPrimaryThread() && player.getUniqueId().equals(info.getHolderUUID())) {
-                    // Running in main thread, and it's the player's own vault. So we can just cache this until logout.
-                    UUIDVaultManager.getInstance().getCachedVaults().setCachedVault(info.getHolderUUID(), info.getNumber(), inv);
-                } else {
-                    try {
-                        // Cache and save.
-                        UUIDVaultManager.getInstance().getCachedVaults().setCachedVault(info.getHolderUUID(), info.getNumber(), inv);
-                        vm.saveVault(inv, info.getHolderUUID(), info.getNumber());
-                    } catch (IOException e) {
-                        // ignore
-                    }
+                try {
+                    vm.saveVault(inv, info.getHolderUUID(), info.getNumber());
+                } catch (IOException e) {
+                    // ignore
                 }
 
                 PlayerVaults.getInstance().getOpenInventories().remove(info.toString());
@@ -74,10 +67,6 @@ public class Listeners implements Listener {
 
             PlayerVaults.getInstance().getInVault().remove(player.getUniqueId().toString());
         }
-    }
-
-    public void flushVaultCache(Player player) {
-        UUIDVaultManager.getInstance().getCachedVaults().flushVaultCacheToFile(player.getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -88,7 +77,6 @@ public class Listeners implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onQuit(PlayerQuitEvent event) {
         saveVault(event.getPlayer());
-        flushVaultCache(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -252,17 +240,20 @@ public class Listeners implements Listener {
             return;
         }
 
-        VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
-        if (info != null) {
-            int num = info.getNumber();
-            String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getHolder());
-            if ((event.getClickedInventory().getTitle() != null && event.getClickedInventory().getTitle().equalsIgnoreCase(title) || event.isShiftClick()) && event.getCurrentItem() != null) {
-                if (PlayerVaults.getInstance().isBlockedMaterial(event.getCurrentItem().getType())) {
-                    event.setCancelled(true);
-                    player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", event.getCurrentItem().getType().name()));
+        Inventory clickedInventory = event.getClickedInventory();
+        if (clickedInventory != null) {
+            VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
+            if (info != null) {
+                int num = info.getNumber();
+                String inventoryTitle = clickedInventory.getTitle();
+                String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getHolder());
+                if (((inventoryTitle != null && inventoryTitle.equalsIgnoreCase(title)) || event.isShiftClick()) && event.getCurrentItem() != null) {
+                    if (PlayerVaults.getInstance().isBlockedMaterial(event.getCurrentItem().getType())) {
+                        event.setCancelled(true);
+                        player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", event.getCurrentItem().getType().name()));
+                    }
                 }
             }
         }
-
     }
 }

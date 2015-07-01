@@ -18,6 +18,7 @@ package com.drtshock.playervaults;
 
 import com.drtshock.playervaults.commands.*;
 import com.drtshock.playervaults.listeners.Listeners;
+import com.drtshock.playervaults.listeners.VaultPreloadListener;
 import com.drtshock.playervaults.tasks.Cleanup;
 import com.drtshock.playervaults.tasks.UUIDConversion;
 import com.drtshock.playervaults.util.Lang;
@@ -48,11 +49,11 @@ public class PlayerVaults extends JavaPlugin {
     private static PlayerVaults instance;
     private boolean update = false;
     private String newVersion = "";
-    private HashMap<String, SignSetInfo> setSign = new HashMap<>();
+    private final HashMap<String, SignSetInfo> setSign = new HashMap<>();
     // Player name - VaultViewInfo
-    private HashMap<String, VaultViewInfo> inVault = new HashMap<>();
+    private final HashMap<String, VaultViewInfo> inVault = new HashMap<>();
     // VaultViewInfo - Inventory
-    private HashMap<String, Inventory> openInventories = new HashMap<>();
+    private final HashMap<String, Inventory> openInventories = new HashMap<>();
     private Economy economy = null;
     private boolean useVault = false;
     private YamlConfiguration signs;
@@ -61,7 +62,7 @@ public class PlayerVaults extends JavaPlugin {
     private boolean backupsEnabled;
     private File backupsFolder = null;
     private File vaultData;
-    private Set<Material> blockedMats = new HashSet<>();
+    private final Set<Material> blockedMats = new HashSet<>();
 
     @Override
     public void onEnable() {
@@ -72,6 +73,7 @@ public class PlayerVaults extends JavaPlugin {
         loadLang();
         new UUIDVaultManager();
         getServer().getPluginManager().registerEvents(new Listeners(this), this);
+        getServer().getPluginManager().registerEvents(new VaultPreloadListener(), this);
         this.backupsEnabled = this.getConfig().getBoolean("backups.enabled", true);
         loadSigns();
         checkUpdate();
@@ -99,9 +101,6 @@ public class PlayerVaults extends JavaPlugin {
     @Override
     public void onDisable() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            UUIDVaultManager.getInstance().getCachedVaults().flushVaultCacheToFile(player.getUniqueId());
-            UUIDVaultManager.getInstance().getCachedVaults().deleteVaultCache(player.getUniqueId());
-
             if (this.inVault.containsKey(player.getName())) {
                 Inventory inventory = player.getOpenInventory().getTopInventory();
                 if (inventory.getViewers().size() == 1) {
@@ -111,7 +110,6 @@ public class PlayerVaults extends JavaPlugin {
                     } catch (IOException e) {
                         // ignore
                     }
-
                     this.openInventories.remove(info.toString());
                 }
 
@@ -120,7 +118,6 @@ public class PlayerVaults extends JavaPlugin {
 
             player.closeInventory();
         }
-
         saveSignsFile();
     }
 

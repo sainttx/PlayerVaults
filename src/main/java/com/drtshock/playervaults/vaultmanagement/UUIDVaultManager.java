@@ -5,15 +5,17 @@ import com.drtshock.playervaults.util.Lang;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class to handle vault operations with new UUIDs.
@@ -21,18 +23,13 @@ import java.util.UUID;
 public class UUIDVaultManager {
 
     private static UUIDVaultManager instance;
-    private static CachedVaults cachedVaults;
 
     public UUIDVaultManager() {
         instance = this;
-        cachedVaults = new CachedVaults();
     }
 
     private final File directory = PlayerVaults.getInstance().getVaultData();
-
-    public CachedVaults getCachedVaults() {
-        return cachedVaults;
-    }
+    private final Map<UUID, YamlConfiguration> cachedVaultFiles = new ConcurrentHashMap<>();
 
     /**
      * Saves the inventory to the specified player and vault number.
@@ -59,10 +56,6 @@ public class UUIDVaultManager {
      * @param number The vault number.
      */
     public Inventory loadOwnVault(Player player, int number, int size) {
-        if (cachedVaults.hasVaultCached(player.getUniqueId(), number)) {
-            return cachedVaults.getCachedVault(player.getUniqueId(), number);
-        }
-
         if (size % 9 != 0) {
             size = 54;
         }
@@ -94,7 +87,6 @@ public class UUIDVaultManager {
             PlayerVaults.getInstance().getOpenInventories().put(info.toString(), inv);
         }
 
-        cachedVaults.setCachedVault(player.getUniqueId(), number, inv);
         return inv;
     }
 
@@ -105,10 +97,6 @@ public class UUIDVaultManager {
      * @param number The vault number.
      */
     public Inventory loadOtherVault(UUID holder, int number, int size) {
-        if (cachedVaults.hasVaultCached(holder, number)) {
-            return cachedVaults.getCachedVault(holder, number);
-        }
-
         if (size % 9 != 0) {
             size = 54;
         }
@@ -131,8 +119,6 @@ public class UUIDVaultManager {
             }
             PlayerVaults.getInstance().getOpenInventories().put(info.toString(), inv);
         }
-
-        cachedVaults.setCachedVault(holder, number, inv);
         return inv;
     }
 
@@ -189,28 +175,50 @@ public class UUIDVaultManager {
      *
      * @throws IOException Uh oh!
      */
-    public void deleteVault(CommandSender sender, UUID holder, int number) throws IOException {
-        File file = new File(directory, holder.toString() + ".yml");
-        if (!file.exists()) {
-            return;
-        }
+    public void deleteVault(CommandSender sender, final UUID holder, final int number) throws IOException {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                File file = new File(directory, holder.toString() + ".yml");
+                if (!file.exists()) {
+                    return;
+                }
 
-        cachedVaults.clearVaultCache(holder);
-
-        FileConfiguration playerFile = YamlConfiguration.loadConfiguration(file);
-        if (file.exists()) {
-            playerFile.set("vault" + number, null);
-            playerFile.save(file);
-        }
+                YamlConfiguration playerFile = YamlConfiguration.loadConfiguration(file);
+                if (file.exists()) {
+                    playerFile.set("vault" + number, null);
+                    if (cachedVaultFiles.containsKey(holder)) {
+                        cachedVaultFiles.put(holder, playerFile);
+                    }
+                    try {
+                        playerFile.save(file);
+                    } catch (IOException ignored) {
+                    }
+                }
+            }
+        }.runTaskAsynchronously(PlayerVaults.getInstance());
 
         OfflinePlayer player = Bukkit.getPlayer(holder);
-        if (player != null && sender.getName().equalsIgnoreCase(player.getName())) {
-            sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_VAULT.toString().replace("%v", String.valueOf(number)));
-        } else {
-            sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_OTHER_VAULT.toString().replace("%v", String.valueOf(number)).replaceAll("%p", player.getName()));
+        if (player != null) {
+            if (sender.getName().equalsIgnoreCase(player.getName())) {
+                sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_VAULT.toString().replace("%v", String.valueOf(number)));
+            } else {
+                sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_OTHER_VAULT.toString().replace("%v", String.valueOf(number)).replaceAll("%p", player.getName()));
+            }
         }
 
         PlayerVaults.getInstance().getOpenInventories().remove(new VaultViewInfo(holder.toString(), number).toString());
+    }
+
+    // Should only be run asynchronously
+    public void cachePlayerVaultFile(UUID holder) {
+        cachedVaultFiles.put(holder, loadPlayerVaultFile(holder));
+    }
+
+    public void removeCachedPlayerVaultFile(UUID holder) {
+        if (cachedVaultFiles.containsKey(holder)) {
+            cachedVaultFiles.remove(holder);
+        }
     }
 
     /**
@@ -221,6 +229,13 @@ public class UUIDVaultManager {
      * @return The holder's vault config file.
      */
     public YamlConfiguration getPlayerVaultFile(UUID holder) {
+        if (cachedVaultFiles.containsKey(holder)) {
+            return cachedVaultFiles.get(holder);
+        }
+        return loadPlayerVaultFile(holder);
+    }
+
+    public YamlConfiguration loadPlayerVaultFile(UUID holder) {
         if (!directory.exists()) {
             directory.mkdir();
         }
@@ -240,15 +255,42 @@ public class UUIDVaultManager {
      *
      * @param holder The vault holder of whose file to save.
      * @param yaml   The config to save.
-     *
-     * @throws IOException Uh oh!
      */
-    public void saveFile(UUID holder, YamlConfiguration yaml) throws IOException {
-        File file = new File(directory, holder.toString() + ".yml");
-        if (file.exists() && PlayerVaults.getInstance().isBackupsEnabled()) {
-            file.renameTo(new File(PlayerVaults.getInstance().getBackupsFolder(), holder.toString() + ".yml"));
+    public void saveFile(final UUID holder, final YamlConfiguration yaml) {
+        if (cachedVaultFiles.containsKey(holder)) {
+            cachedVaultFiles.put(holder, yaml);
         }
-        yaml.save(file);
+        final boolean backups = PlayerVaults.getInstance().isBackupsEnabled();
+        final File backupsFolder = PlayerVaults.getInstance().getBackupsFolder();
+        final File file = new File(directory, holder.toString() + ".yml");
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (file.exists() && backups) {
+                    file.renameTo(new File(backupsFolder, holder.toString() + ".yml"));
+                }
+                try {
+                    yaml.save(file);
+                } catch (IOException ignored) {
+                }
+            }
+        }.runTaskAsynchronously(PlayerVaults.getInstance());
+    }
+
+    public void saveFileSync(final UUID holder, final YamlConfiguration yaml) {
+        if (cachedVaultFiles.containsKey(holder)) {
+            cachedVaultFiles.put(holder, yaml);
+        }
+        final boolean backups = PlayerVaults.getInstance().isBackupsEnabled();
+        final File backupsFolder = PlayerVaults.getInstance().getBackupsFolder();
+        final File file = new File(directory, holder.toString() + ".yml");
+        if (file.exists() && backups) {
+            file.renameTo(new File(backupsFolder, holder.toString() + ".yml"));
+        }
+        try {
+            yaml.save(file);
+        } catch (IOException ignored) {
+        }
     }
 
     /**
