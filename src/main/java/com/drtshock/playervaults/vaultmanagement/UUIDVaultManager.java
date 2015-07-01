@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -132,8 +133,22 @@ public class UUIDVaultManager {
      * @return inventory if exists, otherwise null.
      */
     private Inventory getInventory(YamlConfiguration playerFile, int size, int number, String title) {
-        String vault = playerFile.getString("vault" + number);
-        return Serialization.toInventory(vault, number, size, title);
+        if (playerFile.isString("vault" + number)) {
+            String vault = playerFile.getString("vault" + number);
+            return Serialization.toInventory(vault, number, size, title);
+        } else {
+            List<String> data = new ArrayList<>();
+            for (int x = 0; x < size; x++) {
+                String line = playerFile.getString("vault" + number + "." + x);
+                if (line != null) {
+                    data.add(line);
+                } else {
+                    data.add("null");
+                }
+            }
+
+            return Serialization.toInventory(data, number, size, title);
+        }
     }
 
     /**
