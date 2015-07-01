@@ -38,7 +38,6 @@ public class UUIDVaultManager {
      * @param inventory The inventory to be saved.
      * @param player    The player of whose file to save to.
      * @param number    The vault number.
-     *
      * @throws java.io.IOException Uh oh!
      */
     public void saveVault(Inventory inventory, UUID player, int number) throws IOException {
@@ -68,7 +67,15 @@ public class UUIDVaultManager {
             inv = PlayerVaults.getInstance().getOpenInventories().get(info.toString());
         } else {
             YamlConfiguration playerFile = getPlayerVaultFile(player.getUniqueId());
-            if (!playerFile.isString("vault" + number)) {
+
+            if (playerFile.isConfigurationSection("vault" + number) || playerFile.isString("vault" + number)) {
+                Inventory i = getInventory(playerFile, size, number, title);
+                if (i == null) {
+                    return null;
+                } else {
+                    inv = i;
+                }
+            } else {
                 VaultHolder vaultHolder = new VaultHolder(number);
                 if (EconomyOperations.payToCreate(player)) {
                     inv = Bukkit.createInventory(vaultHolder, size, title);
@@ -76,13 +83,6 @@ public class UUIDVaultManager {
                 } else {
                     player.sendMessage(Lang.TITLE.toString() + Lang.INSUFFICIENT_FUNDS.toString());
                     return null;
-                }
-            } else {
-                Inventory i = getInventory(playerFile, size, number, title);
-                if (i == null) {
-                    return null;
-                } else {
-                    inv = i;
                 }
             }
             PlayerVaults.getInstance().getOpenInventories().put(info.toString(), inv);
@@ -108,7 +108,7 @@ public class UUIDVaultManager {
             inv = PlayerVaults.getInstance().getOpenInventories().get(info.toString());
         } else {
             YamlConfiguration playerFile = getPlayerVaultFile(holder);
-            if (!playerFile.isString("vault" + number)) {
+            if (!playerFile.isString("vault" + number) && !playerFile.isConfigurationSection("vault" + number)) {
                 return null;
             } else {
                 Inventory i = getInventory(playerFile, size, number, title);
@@ -129,16 +129,12 @@ public class UUIDVaultManager {
      * @param playerFile the YamlConfiguration file.
      * @param size       the size of the vault.
      * @param number     the vault number.
-     *
      * @return inventory if exists, otherwise null.
      */
     private Inventory getInventory(YamlConfiguration playerFile, int size, int number, String title) {
-        if (playerFile.isString("vault" + number)) {
-            String vault = playerFile.getString("vault" + number);
-            return Serialization.toInventory(vault, number, size, title);
-        } else {
+        if (playerFile.isConfigurationSection("vault" + number)) {
             List<String> data = new ArrayList<>();
-            for (int x = 0; x < size; x++) {
+            for (int x = 0 ; x < size ; x++) {
                 String line = playerFile.getString("vault" + number + "." + x);
                 if (line != null) {
                     data.add(line);
@@ -148,6 +144,9 @@ public class UUIDVaultManager {
             }
 
             return Serialization.toInventory(data, number, size, title);
+        } else {
+            String vault = playerFile.getString("vault" + number);
+            return Serialization.toInventory(vault, number, size, title);
         }
     }
 
@@ -156,7 +155,6 @@ public class UUIDVaultManager {
      *
      * @param holder The holder of the vault.
      * @param number The vault number.
-     *
      * @return The inventory of the specified holder and vault number.
      */
     public Inventory getVault(UUID holder, int number) {
@@ -187,7 +185,6 @@ public class UUIDVaultManager {
      * @param sender The sender of whom to send messages to.
      * @param holder The vault holder.
      * @param number The vault number.
-     *
      * @throws IOException Uh oh!
      */
     public void deleteVault(CommandSender sender, final UUID holder, final int number) throws IOException {
@@ -240,7 +237,6 @@ public class UUIDVaultManager {
      * Get the holder's vault file. Create if doesn't exist.
      *
      * @param holder The vault holder.
-     *
      * @return The holder's vault config file.
      */
     public YamlConfiguration getPlayerVaultFile(UUID holder) {
